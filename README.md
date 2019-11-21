@@ -1,2 +1,3 @@
 # AWS
-Creating the VPC, Subnet, IGW, EC2
+Creating the VPC, Subnet, IGW, EC2 with Ansible in one go...
+All componenets are coded in yml so you can run the code from Bastion host and build your Infra in one shot. 

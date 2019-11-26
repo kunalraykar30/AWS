@@ -6,7 +6,7 @@
   hosts: localhost
   connection: local
   vars_files:
-  - var/var_alldetails
+  - var/var_alldetails.yml
 
   tasks:
   - name: create VPC        # create VPC using cidr block

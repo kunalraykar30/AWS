@@ -12,7 +12,7 @@ The values mentioned in the var_alldetails will be used by yml file to set up th
 -var_alldetails
 
 Command to be executed:
-[root@ip-address-of-host]# ansible-playbook create_ec2.yml
+[root@Bastion_host]# ansible-playbook create_ec2.yml
 
 Here aws-region=eu-central-1 is mentioned and all Infra components will be created in this region. 
 

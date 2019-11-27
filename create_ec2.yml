@@ -95,11 +95,8 @@
     set_fact:
       private_subnet_az2_id: "{{ my_private_subnet_az2.subnet.id }}"
 
-
-# Every VPC needs at least one Internet Gateway.
-# This component allows traffic between the VPC and the outside world.
-# Even though we have two AZ, we only need one Internet Gateway,
-# as this component is external to our VPC, and highly available.
+# Creating IGW to allow the traffic between VPC and internet.
+# Using single IGW as Internet Gateway is external to our VPC,highly available
 
   - name:               Create Internet Gateway for VPC
     ec2_vpc_igw:
@@ -114,5 +111,98 @@
     set_fact:
       igw_id:           "{{ my_vpc_igw.gateway_id }}"
 
-  - debug:
-      msg: public subnet "{{  my_vpc_igw.gateway_id }}"
+#  - debug:
+#      msg: public subnet "{{  my_vpc_igw.gateway_id }}"
+
+# Creating EIP for NAT gateway and then attachting NAT GW to public subnet.
+# Here NAT GW is created and EIP is also assigned you can also create EIP first and then assign to NAT GW
+
+  - name: Create NAT Gateway [AZ-1]
+    ec2_vpc_nat_gateway:
+      state: present
+      subnet_id: "{{ public_subnet_az1_id }}"
+      wait: yes
+      region: "{{ aws_region }}"
+      if_exist_do_not_create: true       # Create NAT GW if not present
+    register: my_nat_gateway_z1
+
+#  - name: Check gateway details
+#    ec2_vpc_nat_gateway_facts:
+#      region: "{{ aws_region }}"
+#      filters:
+#        subnet-id: "{{ public_subnet_az1_id }}"
+#        state: ['available']
+#    register: myngws
+
+#  - name: Debugging the result
+#    debug:
+#      msg: "{{ myngws.result }}"
+
+
+  - name: Set Nat Gateway ID in variable [AZ-1]
+    set_fact:
+      nat_gateway_az1_id: "{{ my_nat_gateway_z1.nat_gateway_id }}"
+
+# Creating Route Tables
+# Route table for Public Subnet. This route table is associtead with IGW
+
+  - name: Set up public subnet route table
+    ec2_vpc_route_table:
+      vpc_id: "{{ vpc_id }}"
+      region: "{{ aws_region }}"
+      tags:
+        Name: "{{ vpc_name }} Public RT"
+      subnets:
+        - "{{ public_subnet_az1_id }}"
+        - "{{ public_subnet_az2_id }}"
+      routes:
+        - dest: "0.0.0.0/0"
+          gateway_id: "{{ igw_id }}"
+
+# Creating Route Tables for Private Subnet
+
+  - name: Set up private subnet route table [AZ-1] [AZ-1]
+    ec2_vpc_route_table:
+      vpc_id: "{{ vpc_id }}"
+      region: "{{ aws_region }}"
+      tags:
+        Name: "{{ vpc_name }} Private RT"
+      subnets:
+        - "{{ private_subnet_az1_id }}"
+        - "{{ private_subnet_az2_id }}"
+      routes:
+        - dest: "0.0.0.0/0"
+          gateway_id: "{{ nat_gateway_az1_id }}"
+
+# Create the Security Groups.
+# One SG to attach to public instances
+# Second SG to attach to private instances.
+
+  - name: Create Main Security Group
+    ec2_group:
+      name: "External SSH Access"
+      description: "External SSH Access"
+      vpc_id: "{{ vpc_id }}"
+      region: "{{ aws_region }}"
+      rules:
+        - proto: "tcp"
+          from_port: "22"
+          to_port: "22"
+          cidr_ip: "{{ my_ip }}/32"
+    register: my_main_sg
+
+  - name: Set Main SG ID
+    set_fact:
+      main_sg_id: "{{ my_main_sg.group_id }}"
+
+  - name: Create Private Security Group
+    ec2_group:
+      name: "Private Instances SG"
+      description: "Private Instances SG"
+      vpc_id: "{{ vpc_id }}"
+      region: "{{ aws_region }}"
+      rules:
+        - proto: "tcp"
+          from_port: "22"
+          to_port: "22"
+          group_id: "{{ main_sg_id }}"

@@ -1,4 +1,5 @@
 # AWS
+# Author: Kunal Raykar
 Objective is to create the VPC, Subnet, IGW, EC2 with Ansible in one go...
 All componenets are coded in yml so you can run the code from Bastion host and build your Infra in one shot.
 
@@ -21,6 +22,6 @@ so that in the case of a power outage, not all zones are impacted. Pretty awesom
 Here I have created 4 subnets (2 public, 2 privates). We will create 2 Elastic IPs, and 2 NAT Gateways (one per AZ). 
 We double the NAT Gateways so that each AZ can be completely independent.
 
-NOTE: I generally use the Bastion host to perform the tasks. Make sure that git,ansible,boto3,boto,python are installed on Bastion host. 
+NOTE: I generally have used Bastion host to perform the tasks. Make sure that git,ansible,boto3,boto,python are installed on Bastion host. 
 Also, You need to create one role and assign to your bastion host in order for your bastion host to spun up Infra components. 
 I have not used any AWS credentials here because I am using AWS bastion host to create all the Infra components. 
